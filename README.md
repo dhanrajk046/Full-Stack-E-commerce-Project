@@ -5,6 +5,7 @@ A complete full-stack e-commerce web application built using React + Tailwind CS
 This project was developed by following a structured 10-day practical learning approach, covering both frontend and backend development with real-world implementation.
 
 https://full-stack-e-commerce-project-39k6.onrender.com
+
 This project demonstrates how to build a complete e-commerce application from scratch:
 
 Frontend UI development using React + Tailwind CSS
