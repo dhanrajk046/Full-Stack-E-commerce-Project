@@ -60,7 +60,7 @@ Backend (.env)
 SECRET_KEY=your_secret_key
 DEBUG=True
 Frontend (.env)
-VITE_DJANGO_BASE_URL=http://127.0.0.1:8000
+VITE_DJANGO_BASE_URL=
 
 What I Learned
 Full-stack development using React and Django
