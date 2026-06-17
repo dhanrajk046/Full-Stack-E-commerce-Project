@@ -1,5 +1,6 @@
 import json
 import re
+from django.db.models import Q
 
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
@@ -12,11 +13,26 @@ from .models import Product, Category, Cart, CartItem, Order, OrderItem
 from .serializers import CategorySerializer, ProductSerializer, CartSerializer
 
 
-# ✅ Get all products
+# # ✅ Get all products
+# @api_view(["GET"])
+# @permission_classes([AllowAny])
+# def get_products(request):
+#     products = Product.objects.all()
+#     serializer = ProductSerializer(products, many=True)
+#     return Response(serializer.data)
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def get_products(request):
+    search = request.GET.get("search", "").strip()
+
     products = Product.objects.all()
+
+    if search:
+        products = products.filter(
+            Q(name__icontains=search)
+        )
+
     serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
 
