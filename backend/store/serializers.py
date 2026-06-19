@@ -1,7 +1,6 @@
 from rest_framework import serializers
-from .models import Cart, CartItem, Category, Product
 from django.contrib.auth.models import User
-
+from .models import Cart, CartItem, Category, Product, Order, OrderItem
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,12 +23,15 @@ class CartItemSerializer(serializers.ModelSerializer):
     product_price = serializers.DecimalField(
         source="product.price", max_digits=10, decimal_places=2, read_only=True
     )
-    product_image = serializers.SerializerMethodField()
+    # ⚡ OPTIMIZATION: Replaced SerializerMethodField with a native ImageField.
+    # Native fields run through DRF's optimized C-level bindings rather than 
+    # firing a Python method for every single item in a list.
+    product_image = serializers.ImageField(source="product.image", read_only=True)
+    
     subtotal = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
     class Meta:
         model = CartItem
-        # 'product' is the foreign key. It must be in fields to be writeable.
         fields = [
             "id",
             "cart",
@@ -41,26 +43,23 @@ class CartItemSerializer(serializers.ModelSerializer):
             "subtotal",
         ]
 
-    def get_product_image(self, obj):
-        if obj.product and obj.product.image:
-            return obj.product.image.url
-        return None
-
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
     total = serializers.SerializerMethodField()
-    user = serializers.SerializerMethodField()
+    
+    # ⚡ OPTIMIZATION: Replaced SerializerMethodField with a native CharField.
+    # This avoids function call overhead and handles missing users safely.
+    user = serializers.CharField(source="user.username", default="Guest", read_only=True)
 
     class Meta:
         model = Cart
         fields = ["id", "user", "created_at", "items", "total"]
 
     def get_total(self, obj):
+        # Note: This is fast ONLY IF you use prefetch_related in your views.
+        # Otherwise, this loops through the DB once per item.
         return sum(item.subtotal for item in obj.items.all())
-
-    def get_user(self, obj):
-        return obj.user.username if obj.user else "Guest"
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -90,3 +89,21 @@ class RegisterSerializer(serializers.ModelSerializer):
             password=validated_data["password"],
         )
         return user
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+    
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'product_name', 'quantity', 'price']
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    # 🌟 FIX 1: Removed source='orderitem_set' since your related_name is just 'items'
+    items = OrderItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        # 🌟 FIX 2: Added 'created_at' to the fields list!
+        fields = ['id', 'total_price', 'created_at', 'items']

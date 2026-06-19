@@ -18,4 +18,6 @@ urlpatterns = [
     # Remove item
     path("cart/items/<int:pk>/delete/", views.remove_from_cart),
     path("orders/create/", views.create_order),
+    path("orders/", views.get_user_orders),
+    path("orders/<int:pk>/", views.get_order_details),
 ]

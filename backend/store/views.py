@@ -7,26 +7,31 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from django.contrib.auth.models import User
-from .serializers import UserSerializer, RegisterSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+
 from .models import Product, Category, Cart, CartItem, Order, OrderItem
-from .serializers import CategorySerializer, ProductSerializer, CartSerializer
+from .serializers import (
+    UserSerializer, 
+    RegisterSerializer, 
+    CategorySerializer, 
+    ProductSerializer, 
+    CartSerializer,
+    OrderSerializer
+)
+
+# ⚡ Helper Function to fetch a fully optimized Cart
+def get_optimized_cart(cart_id):
+    return Cart.objects.select_related("user").prefetch_related("items__product").get(id=cart_id)
 
 
-# # ✅ Get all products
-# @api_view(["GET"])
-# @permission_classes([AllowAny])
-# def get_products(request):
-#     products = Product.objects.all()
-#     serializer = ProductSerializer(products, many=True)
-#     return Response(serializer.data)
-
+# ✅ Get all products (with optional search)
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def get_products(request):
     search = request.GET.get("search", "").strip()
-
-    products = Product.objects.all()
+    
+    # ⚡ OPTIMIZED: Added select_related for category
+    products = Product.objects.select_related("category").all()
 
     if search:
         products = products.filter(
@@ -42,11 +47,12 @@ def get_products(request):
 @permission_classes([AllowAny])
 def get_product_details(request, pk):
     try:
-        product = Product.objects.get(id=pk)
+        # ⚡ OPTIMIZED: Added select_related for category
+        product = Product.objects.select_related("category").get(id=pk)
         serializer = ProductSerializer(product)
         return Response(serializer.data)
     except Product.DoesNotExist:
-        return Response({"error": "Product not found"}, status=404)
+        return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
 # ✅ Get categories
@@ -62,42 +68,60 @@ def get_categories(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_cart(request):
-    cart, _ = Cart.objects.get_or_create(
-        user=request.user if request.user.is_authenticated else None
-    )
-    serializer = CartSerializer(cart)
+    # IsAuthenticated guarantees request.user is a valid user
+    cart, _ = Cart.objects.get_or_create(user=request.user)
+    
+    # ⚡ OPTIMIZED: Fetch the cart with prefetched items to avoid N+1 serialization
+    optimized_cart = get_optimized_cart(cart.id)
+    serializer = CartSerializer(optimized_cart)
     return Response(serializer.data)
 
 
 # ✅ Add to cart
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def add_to_cart(request):
     product_id = request.data.get("product_id")
 
-    if product_id is None:
-        return Response({"error": "product_id is required"}, status=400)
+    if not product_id:
+        return Response(
+            {"error": "product_id is required"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     try:
         product = Product.objects.get(id=product_id)
-    except (Product.DoesNotExist, ValueError):
-        return Response({"error": "Product not found"}, status=404)
+    except Product.DoesNotExist:
+        return Response(
+            {"error": "Product not found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
-    cart, _ = Cart.objects.get_or_create(
-        user=request.user if request.user.is_authenticated else None
+    cart, _ = Cart.objects.get_or_create(user=request.user)
+
+    cart_item, created = CartItem.objects.get_or_create(
+        cart=cart,
+        product=product,
     )
-
-    item, created = CartItem.objects.get_or_create(cart=cart, product=product)
 
     if not created:
-        item.quantity += 1
-        item.save()
+        cart_item.quantity += 1
+        cart_item.save()
+
+    # ⚡ OPTIMIZED: Re-fetch cart with prefetch before serialization
+    optimized_cart = get_optimized_cart(cart.id)
+    serializer = CartSerializer(optimized_cart)
 
     return Response(
-        {"message": "Product added to cart", "cart": CartSerializer(cart).data}
+        {
+            "message": "Product added to cart successfully",
+            "cart": serializer.data,
+        },
+        status=status.HTTP_200_OK,
     )
 
 
+# ✅ Update cart quantity
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def update_cart_quantity(request):
@@ -105,27 +129,30 @@ def update_cart_quantity(request):
     quantity = request.data.get("quantity")
 
     if not item_id or quantity is None:
-        return Response({"error": "item_id and quantity are required"}, status=400)
+        return Response({"error": "item_id and quantity are required"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        item = CartItem.objects.get(id=item_id)
-        # cart = item.cart
+        # ⚡ OPTIMIZED: select_related on cart to prevent an extra query
+        item = CartItem.objects.select_related("cart").get(id=item_id)
 
         if int(quantity) < 1:
+            cart_id = item.cart.id
             item.delete()
             return Response(
                 {"error": "Quantity must be at least 1. Item removed from cart."},
-                status=400,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         item.quantity = quantity
         item.save()
-        # message = "Cart updated"
-        serializer = CartSerializer(item.cart)
+        
+        # ⚡ OPTIMIZED: Fetch optimized cart
+        optimized_cart = get_optimized_cart(item.cart.id)
+        serializer = CartSerializer(optimized_cart)
         return Response({"message": "Cart updated", "cart": serializer.data})
 
     except CartItem.DoesNotExist:
-        return Response({"error": "Item not found"}, status=404)
+        return Response({"error": "Item not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
 # ✅ Remove from cart
@@ -133,16 +160,20 @@ def update_cart_quantity(request):
 @permission_classes([IsAuthenticated])
 def remove_from_cart(request, pk):
     try:
-        item = CartItem.objects.get(id=pk)
-        cart = item.cart
+        # ⚡ OPTIMIZED: select_related on cart
+        item = CartItem.objects.select_related("cart").get(id=pk)
+        cart_id = item.cart.id
         item.delete()
 
-        return Response({"message": "Item removed", "cart": CartSerializer(cart).data})
+        # ⚡ OPTIMIZED: Fetch optimized cart
+        optimized_cart = get_optimized_cart(cart_id)
+        return Response({"message": "Item removed", "cart": CartSerializer(optimized_cart).data})
 
     except CartItem.DoesNotExist:
-        return Response({"error": "Item not found"}, status=404)
+        return Response({"error": "Item not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
+# ✅ Create order
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_order(request):
@@ -152,7 +183,7 @@ def create_order(request):
             try:
                 data = json.loads(data)
             except json.JSONDecodeError:
-                return Response({"error": "Invalid JSON body"}, status=400)
+                return Response({"error": "Invalid JSON body"}, status=status.HTTP_400_BAD_REQUEST)
 
         name = data.get("name")
         address = data.get("address")
@@ -161,41 +192,46 @@ def create_order(request):
 
         digits = re.sub(r"\D", "", phone)
         if not digits or len(digits) < 7:
-            return Response({"error": "Invalid phone number"}, status=400)
+            return Response({"error": "Invalid phone number"}, status=status.HTTP_400_BAD_REQUEST)
 
-        cart, created = Cart.objects.get_or_create(
-            user=request.user if request.user.is_authenticated else None
-        )
+        # ⚡ OPTIMIZED: Use get_or_create to guarantee we target the identical active cart,
+        # then apply prefetch so we don't query the database inside the loop.
+        cart, _ = Cart.objects.get_or_create(user=request.user)
+        
+        # Pull items out into memory. Checking the length leverages the cache safely.
+        cart_items = list(cart.items.select_related("product").all())
 
-        if not cart.items.exists():
-            return Response({"error": "Cart is empty"}, status=400)
+        if len(cart_items) == 0:
+            return Response({"error": "Cart is empty"}, status=status.HTTP_400_BAD_REQUEST)
 
         total = sum(
-            float(item.product.price) * item.quantity for item in cart.items.all()
+            float(item.product.price) * item.quantity for item in cart_items
         )
 
-        # Create Order - only assign user if authenticated
-        user = request.user if request.user.is_authenticated else None
-        order = Order.objects.create(user=user, total_price=total)
+        order = Order.objects.create(user=request.user, total_price=total)
 
-        # Create OrderItems
-        for item in cart.items.all():
-            OrderItem.objects.create(
+        # Create OrderItems - bulk_create is much faster here!
+        # ⚡ OPTIMIZED: Replaced loop with bulk_create for massive speed increase
+        order_items_to_create = [
+            OrderItem(
                 order=order,
                 product=item.product,
                 quantity=item.quantity,
                 price=item.product.price,
-            )
+            ) for item in cart_items
+        ]
+        OrderItem.objects.bulk_create(order_items_to_create)
 
-        # Clear cart
+        # Clear cart efficiently
         cart.items.all().delete()
 
         return Response({"message": "Order created successfully", "order_id": order.id})
 
     except Exception as e:
-        return Response({"error": str(e)}, status=500)
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# ✅ User Registration
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register_view(request):
@@ -215,9 +251,24 @@ def register_view(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# {
-#   "username": "myuser",
-#   "email": "me@example.com",
-#   "password": "123456",
-#   "password2": "123456"
-# }
+# ✅ Get all orders for the logged-in user
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_user_orders(request):
+    # 🌟 FIX: Changed 'orderitem_set__product' to 'items__product'
+    orders = Order.objects.filter(user=request.user).prefetch_related('items__product').order_by('-id') 
+    serializer = OrderSerializer(orders, many=True)
+    return Response(serializer.data)
+
+
+# ✅ Get details for a specific order
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_order_details(request, pk):
+    try:
+        # 🌟 FIX: Changed 'orderitem_set__product' to 'items__product'
+        order = Order.objects.prefetch_related('items__product').get(id=pk, user=request.user)
+        serializer = OrderSerializer(order)
+        return Response(serializer.data)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)

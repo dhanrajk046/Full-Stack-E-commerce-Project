@@ -32,7 +32,8 @@ function CheckoutPage() {
       if (res.ok) {
         clearCart();
         alert("Order placed successfully!");
-        nav("/");
+        // 🌟 FIX: Navigate smoothly to the My Orders page!
+        nav("/orders"); 
       } else {
         alert(data.error || "Order failed");
       }
