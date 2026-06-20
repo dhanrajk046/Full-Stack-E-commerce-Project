@@ -26,7 +26,7 @@ DEBUG = os.getenv("DEBUG", "False") == "True"
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    ".koyeb.app",  # Updated for Koyeb deployment
+    ".onrender.com",  # ✅ Updated to allow Render deployment
 ]
 
 # Application definition
@@ -143,7 +143,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5174",
-    "https://full-stack-e-commerce-project-lake.vercel.app",  # ✅ Added your live Vercel frontend domain!
+    "https://full-stack-e-commerce-project-lake.vercel.app",  # ✅ Vercel frontend domain
 ]
 
 # Django Rest Framework & Simple JWT
