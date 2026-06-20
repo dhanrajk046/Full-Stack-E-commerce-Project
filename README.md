@@ -1,80 +1,37 @@
-🛒 Full Stack E-Commerce App (React + Django)
+# 🛒 SonuCart: Full-Stack E-Commerce Application
 
-A complete full-stack e-commerce web application built using React + Tailwind CSS (Frontend) and Django REST Framework (Backend) with database integration.
+A professional, responsive full-stack e-commerce web application built with **React (Vite)** and **Django REST Framework**. This project demonstrates the complete lifecycle of a modern web application, from database design to API development and production deployment.
 
-This project was developed by following a structured 10-day practical learning approach, covering both frontend and backend development with real-world implementation.
+🔗 **[Live Demo: Check out SonuCart](https://full-stack-e-commerce-project-lake.vercel.app/)**
 
+---
 
-This project demonstrates how to build a complete e-commerce application from scratch:
+## 🚀 Overview
+SonuCart is a complete shopping solution developed to master the integration between frontend and backend services. It includes user authentication, a dynamic product catalog, and a shopping cart experience.
 
-Frontend UI development using React + Tailwind CSS
-Backend REST APIs using Django REST Framework
-Database integration using PostgreSQL / SQLite
-Full-stack integration (Frontend ↔ Backend)
+### 🌟 Key Features
+* **User Authentication:** Secure JWT-based Login & Signup flow.
+* **Product Catalog:** View products with detailed descriptions and pricing.
+* **Shopping Cart:** Add, update, and manage items in real-time.
+* **Order Processing:** Seamless order placement and history tracking.
+* **Responsive Design:** Mobile-friendly UI built with Tailwind CSS.
 
-Deployment of full project
+---
 
-💡 Course Highlights
-⚛️ React 19 setup and folder structure
-🧩 Django REST API with models, serializers, and views
-🗄️ PostgreSQL database integration
-🛍️ Product listing and product details pages
-🛒 Cart functionality (add, update, remove items)
-🔐 User authentication (JWT Login & Signup)
-📦 Checkout and order placement
-🌐 Full deployment (Render + Vercel)
+## 🛠 Tech Stack
 
-🛠️ Tech Stack
-Frontend
-React (Vite)
-Tailwind CSS
-React Router
-Context API
-Backend
-Django
-Django REST Framework
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React (Vite), Tailwind CSS, React Router, Context API |
+| **Backend** | Django, Django REST Framework, SimpleJWT |
+| **Database** | PostgreSQL (Neon) |
+| **Deployment** | Vercel (Frontend), Render (Backend) |
 
-PostgreSQL / SQLite
-📂 Project Structure
+---
+
+## 📂 Project Structure
+```text
 Full-Stack-E-commerce-Project/
-│
-├── frontend/      # React App
-├── backend/       # Django API
-└── README.md
-
-⚙️ Setup Instructions
-1. Clone Repository
-git clone https://github.com/dhanrajk046/Full-Stack-E-commerce-Project.git
-cd Full-Stack-E-commerce-Project
-2. Backend Setup
-cd backend
-pip install -r requirements.txt
-python manage.py runserver
-3. Frontend Setup
-cd frontend
-npm install
-npm run dev
-
-🔐 Environment Variables
-Backend (.env)
-SECRET_KEY=your_secret_key
-DEBUG=True
-Frontend (.env)
-VITE_DJANGO_BASE_URL=
-
-What I Learned
-Full-stack development using React and Django
-API integration and data handling
-Authentication using JWT
-State management using Context API
-Handling real-world bugs and debugging
-
-🚀 Future Improvements
-Payment integration (Stripe)
-Order history page
-UI/UX improvements
-Production deployment
-
-👨‍💻 Author
-
-Dhanraj
+├── backend/         # Django API, Models, Serializers
+├── frontend/        # React (Vite) Frontend
+└── vercel.json      # Routing configuration for React SPA
