@@ -9,7 +9,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import PrivateRouter from './components/PrivateRouter';
-import OrderSuccess from "./pages/OrderSuccess"; 
+import OrderSuccess from "./pages/OrderSucces"; 
 import MyOrders from "./pages/MyOrders";
 import OrderDetails from "./pages/OrderDetails";
 
