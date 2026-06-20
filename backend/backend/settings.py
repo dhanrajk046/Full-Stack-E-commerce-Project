@@ -77,14 +77,24 @@ TEMPLATES = [
 WSGI_APPLICATION = "backend.wsgi.application"
 
 # Database
-# Standardized to use dj_database_url for easy parsing of DATABASE_URL from Koyeb/Neon/Aiven
-DATABASES = {
-    "default": dj_database_url.config(
-        default=os.getenv("DATABASE_URL"),
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
-}
+# Uses Neon/Postgres in production if DATABASE_URL is set, otherwise falls back to local SQLite.
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -133,7 +143,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5174",
-    # Note: Add your live frontend domain here once it is deployed (e.g., Vercel/Netlify URL)
+    "https://full-stack-e-commerce-project-lake.vercel.app",  # ✅ Added your live Vercel frontend domain!
 ]
 
 # Django Rest Framework & Simple JWT
