@@ -1,9 +1,9 @@
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 
 // Pages & Components
 import ProductList from "./pages/ProductList";
 import ProductDetails from "./pages/ProductDetails";
-import Navbar from './components/Navbar'; // ✅ Fixed 'Nabvar' typo
+import Navbar from './components/Navbar'; 
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import Login from "./pages/Login";
@@ -16,7 +16,7 @@ import OrderDetails from "./pages/OrderDetails";
 function App() {
     return (
         <Router>
-            <Navbar /> {/* ✅ Fixed typo here as well */}
+            <Navbar /> 
 
             <div className="pt-24">
                 <Routes>
@@ -31,9 +31,18 @@ function App() {
                     <Route element={<PrivateRouter />}>
                         <Route path="/checkout" element={<CheckoutPage />} />
                         <Route path="/order-success" element={<OrderSuccess />} />
-                        <Route path="/orders" element={<MyOrders />} /> {/* ✅ Unified route */}
+                        
+                        {/* ✅ Standard Orders Route */}
+                        <Route path="/orders" element={<MyOrders />} /> 
+                        
+                        {/* ✅ Redirects old URL to the new one so you never get a 404 */}
+                        <Route path="/my-orders" element={<Navigate to="/orders" replace />} />
+                        
                         <Route path="/order/:id" element={<OrderDetails />} />
                     </Route>
+
+                    {/* 🚨 Catch-all route to prevent blank screens on bad URLs */}
+                    <Route path="*" element={<div className="text-center mt-10 text-xl font-bold text-gray-700">404 - Page Not Found</div>} />
                 </Routes>
             </div>
         </Router>
