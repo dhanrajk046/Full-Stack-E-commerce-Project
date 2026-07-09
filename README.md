@@ -1,6 +1,7 @@
 # 🛒 SonuCart: Full-Stack E-Commerce Application
 
 A professional, responsive full-stack e-commerce web application built with **React (Vite)** and **Django REST Framework**. This project demonstrates the complete lifecycle of a modern web application, from database design to API development and production deployment.
+🔗 **[Live Demo: Check out SonuCart](https://full-stack-e-commerce-project-lake.vercel.app/)**
 
 <img width="1366" height="763" alt="image--1" src="https://github.com/user-attachments/assets/c4bc5f14-7b65-4534-a1d2-7fc1cd8519b0" />
 
@@ -9,7 +10,6 @@ A professional, responsive full-stack e-commerce web application built with **Re
 
 
 
-🔗 **[Live Demo: Check out SonuCart](https://full-stack-e-commerce-project-lake.vercel.app/)**
 
 ---
 
