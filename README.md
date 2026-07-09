@@ -2,8 +2,10 @@
 
 A professional, responsive full-stack e-commerce web application built with **React (Vite)** and **Django REST Framework**. This project demonstrates the complete lifecycle of a modern web application, from database design to API development and production deployment.
 
-<img width="1351" height="684" alt="image" src="https://github.com/user-attachments/assets/a7d99863-3761-44d8-aa33-6095d4b02fd4" />
-<img width="1347" height="677" alt="image" src="https://github.com/user-attachments/assets/75afcfa5-7b28-412a-b1a7-0b5607347ee4" />
+<img width="1366" height="763" alt="image--1" src="https://github.com/user-attachments/assets/c4bc5f14-7b65-4534-a1d2-7fc1cd8519b0" />
+
+<img width="1366" height="768" alt="image--2" src="https://github.com/user-attachments/assets/2e4ae463-2696-440b-b94a-f5c15945a383" />
+
 
 
 
