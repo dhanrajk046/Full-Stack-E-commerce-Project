@@ -2,6 +2,16 @@ import { createContext, useContext, useState, useEffect } from "react";
 
 const CartContext = createContext();
 
+// Custom event to trigger navigation from outside React Router
+const navigateTo = (path) => {
+  window.dispatchEvent(new CustomEvent('app:navigate', { detail: { path } }));
+};
+
+// Custom event to trigger toast from outside React component
+const showToast = (message, type = 'info') => {
+  window.dispatchEvent(new CustomEvent('app:toast', { detail: { message, type } }));
+};
+
 export const CartProvider = ({ children }) => {
   const BASEURL =
     import.meta.env.VITE_BASE_URL ||
@@ -14,7 +24,6 @@ export const CartProvider = ({ children }) => {
   // Helper function to safely grab and clean the token
   const getToken = () => {
     let token = localStorage.getItem("access_token") || localStorage.getItem("access");
-    
     // Fix for tokens accidentally stored with literal string quotes
     if (token && token.startsWith('"') && token.endsWith('"')) {
       token = token.slice(1, -1);
@@ -24,7 +33,6 @@ export const CartProvider = ({ children }) => {
 
   // Helper function to handle expired sessions
   const handleUnauthorized = () => {
-    console.error("Token expired or invalid. Clearing session.");
     localStorage.removeItem("access_token");
     localStorage.removeItem("access");
     localStorage.removeItem("refresh_token");
@@ -43,7 +51,7 @@ export const CartProvider = ({ children }) => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
         },
       });
 
@@ -67,10 +75,10 @@ export const CartProvider = ({ children }) => {
   // ✅ Add to Cart
   const addToCart = async (productId) => {
     const token = getToken();
-    
+
     if (!token) {
-      alert("You are not logged in! Please log in to add items to your cart.");
-      window.location.href = "/login";
+      showToast("Please log in to add items to your cart.", "warning");
+      navigateTo("/login");
       return;
     }
 
@@ -79,25 +87,25 @@ export const CartProvider = ({ children }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({ product_id: productId }),
       });
-      
+
       if (response.ok) {
-        fetchCart(); // Refresh the cart instantly
-        alert("Product added to cart successfully! 🛒");
+        await fetchCart();
+        showToast("Added to cart! 🛒", "success");
       } else if (response.status === 401) {
         handleUnauthorized();
-        alert("Your session has expired. Please log in again.");
-        window.location.href = "/login";
+        showToast("Session expired. Please log in again.", "error");
+        navigateTo("/login");
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.error("Backend rejected the request:", errorData);
-        alert(`Failed to add: ${errorData.error || "Something went wrong."}`);
+        showToast(errorData.error || "Failed to add to cart.", "error");
       }
     } catch (error) {
       console.error("Error adding to cart:", error);
+      showToast("Network error. Please try again.", "error");
     }
   };
 
@@ -108,15 +116,15 @@ export const CartProvider = ({ children }) => {
 
     try {
       const response = await fetch(`${BASEURL}/api/cart/items/${itemId}/delete/`, {
-        method: "POST", 
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        }
+          "Authorization": `Bearer ${token}`,
+        },
       });
 
       if (response.ok) {
-        fetchCart();
+        await fetchCart();
       } else if (response.status === 401) {
         handleUnauthorized();
       }
@@ -134,16 +142,16 @@ export const CartProvider = ({ children }) => {
 
     try {
       const response = await fetch(`${BASEURL}/api/cart/update/`, {
-        method: "POST", 
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({ item_id: itemId, quantity }),
       });
 
       if (response.ok) {
-        fetchCart();
+        await fetchCart();
       } else if (response.status === 401) {
         handleUnauthorized();
       }
@@ -161,10 +169,10 @@ export const CartProvider = ({ children }) => {
   // ✅ Place Order
   const placeOrder = async (orderData = {}) => {
     const token = getToken();
-    
+
     if (!token) {
-      alert("You must be logged in to place an order.");
-      window.location.href = "/login";
+      showToast("You must be logged in to place an order.", "warning");
+      navigateTo("/login");
       return false;
     }
 
@@ -173,23 +181,23 @@ export const CartProvider = ({ children }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify(orderData),
       });
-      
+
       if (response.ok) {
-        clearCart(); 
-        alert("Order placed successfully! 🎉");
-        // 🌟 FIX: Removed the hard redirect here. We just return true now!
-        return true; 
+        clearCart();
+        showToast("Order placed successfully! 🎉", "success");
+        return true;
       } else {
         const errorData = await response.json().catch(() => ({}));
-        alert(`Failed to place order: ${errorData.error || "Cart is empty."}`);
+        showToast(errorData.error || "Cart is empty or order failed.", "error");
         return false;
       }
     } catch (error) {
       console.error("Error placing order:", error);
+      showToast("Network error. Please try again.", "error");
       return false;
     }
   };
@@ -203,7 +211,7 @@ export const CartProvider = ({ children }) => {
         removeFromCart,
         updateQuantity,
         clearCart,
-        placeOrder, 
+        placeOrder,
       }}
     >
       {children}

@@ -6,7 +6,7 @@ function OrderDetails() {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL || "http://127.0.0.1:8000";
 
   useEffect(() => {
@@ -25,7 +25,7 @@ function OrderDetails() {
         setLoading(false);
       }
     };
-    
+
     fetchOrderDetails();
   }, [id, BASEURL]);
 
@@ -35,114 +35,160 @@ function OrderDetails() {
     if (!isConfirmed) return;
 
     try {
-      // Send request to Django to cancel the order
       const response = await authFetch(`${BASEURL}/api/orders/${id}/cancel/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
 
-      // Update the UI instantly so the user sees it change to "Cancelled"
       setOrder((prevOrder) => ({ ...prevOrder, status: "Cancelled" }));
 
       if (!response.ok) {
         console.warn("UI updated locally, but the backend returned an error.");
       }
-      
     } catch (error) {
       console.error("Error cancelling order:", error);
-      alert("Failed to reach the server to cancel the order.");
+      window.dispatchEvent(new CustomEvent('app:toast', { detail: { message: 'Failed to cancel order. Please try again.', type: 'error' } }));
     }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 animate-pulse">
+          <div className="flex justify-between mb-6 pb-4 border-b border-gray-100">
+            <div className="skeleton h-8 w-48 rounded" />
+            <div className="skeleton h-6 w-32 rounded" />
+          </div>
+          <div className="space-y-4">
+            {[1, 2].map(n => (
+              <div key={n} className="flex items-center gap-4">
+                <div className="skeleton w-12 h-5 rounded-full" />
+                <div className="skeleton h-5 flex-1 rounded" />
+                <div className="skeleton h-5 w-20 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="text-center mt-20">
-        <h2 className="text-red-500 text-2xl font-bold">Order not found.</h2>
-        <p className="text-gray-500 mt-2 mb-6">We couldn't find the details for this order.</p>
-        <Link to="/orders" className="text-blue-600 font-medium hover:underline">
-          &larr; Return to My Orders
-        </Link>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center animate-fade-in">
+          <div className="text-5xl mb-4">❌</div>
+          <h2 className="text-xl font-bold text-red-600 mb-2">Order not found</h2>
+          <p className="text-gray-500 text-sm mb-6">We couldn't find the details for this order.</p>
+          <Link to="/orders" className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition-colors">
+            ← Return to My Orders
+          </Link>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6">
-      <div className="max-w-3xl mx-auto bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-gray-100">
-        
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 border-b border-gray-100 pb-4 gap-4">
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-            Order <span className="text-blue-600">#{order.id}</span>
-          </h2>
-          <Link to="/orders" className="text-blue-600 hover:text-blue-800 transition-colors font-medium flex items-center gap-2">
-            &larr; Back to Orders
-          </Link>
-        </div>
+  const statusConfig = {
+    Delivered: { badge: "bg-green-100 text-green-700", dot: "bg-green-500" },
+    Cancelled: { badge: "bg-red-100 text-red-700 line-through decoration-red-400", dot: "bg-red-500" },
+  };
+  const cfg = statusConfig[order.status] || { badge: "bg-yellow-100 text-yellow-700", dot: "bg-yellow-400 animate-pulse" };
 
-        {/* Order Items Container */}
-        <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Items in this order</h3>
-            {/* Displaying the dynamic status */}
+  return (
+    <div className="min-h-screen bg-gray-50 py-6 sm:py-10 px-4 animate-fade-in">
+      <div className="max-w-3xl mx-auto">
+
+        {/* Back link */}
+        <Link
+          to="/orders"
+          className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium mb-5 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to My Orders
+        </Link>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-5 sm:p-6 border-b border-gray-100">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900">
+                Order <span className="text-blue-600">#{order.id}</span>
+              </h1>
+              {order.created_at && (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Placed on {new Date(order.created_at).toLocaleDateString("en-IN", {
+                    day: "numeric", month: "long", year: "numeric"
+                  })}
+                </p>
+              )}
+            </div>
             {order.status && (
-              <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                order.status === 'Delivered' ? 'bg-green-100 text-green-700' : 
-                order.status === 'Cancelled' ? 'bg-red-100 text-red-700 line-through decoration-red-400' : 
-                'bg-yellow-100 text-yellow-700'
-              }`}>
-                {order.status}
-              </span>
-            )}
-          </div>
-          
-          <div className="space-y-4">
-            {order.items && order.items.map((item) => (
-              <div key={item.id} className="flex justify-between items-center border-b border-gray-200 last:border-0 pb-3 last:pb-0">
-                <div className="flex items-center gap-3 md:gap-4">
-                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold shadow-sm">
-                    {item.quantity}x
-                  </span>
-                  <span className="text-gray-800 font-medium text-base sm:text-lg">
-                    {item.product_name}
-                  </span>
-                </div>
-                <span className="text-gray-900 font-bold text-base sm:text-lg">
-                  ₹ {Number(item.price).toLocaleString('en-IN')}
+              <div className="flex items-center gap-2">
+                <span className={`h-2.5 w-2.5 rounded-full ${cfg.dot}`} />
+                <span className={`text-xs font-bold px-3 py-1 rounded-full ${cfg.badge}`}>
+                  {order.status}
                 </span>
               </div>
-            ))}
+            )}
           </div>
 
-          {/* Total Summary */}
-          <div className="mt-6 pt-5 border-t-2 border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <span className="text-lg font-bold text-gray-600 uppercase tracking-wide">Total Paid</span>
-            <span className="text-2xl sm:text-3xl font-extrabold text-green-600">
-              ₹ {Number(order.total_price).toLocaleString('en-IN')}
-            </span>
-          </div>
+          {/* Items */}
+          <div className="p-5 sm:p-6">
+            <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Items in this order</h2>
 
-          {/* INLINE CANCEL BUTTON */}
-          {order.status !== 'Delivered' && order.status !== 'Cancelled' && (
-            <div className="mt-8 pt-4 flex justify-end">
-              <button 
-                onClick={handleCancelOrder}
-                className="text-sm font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors border border-red-100"
-              >
-                Cancel this Order
-              </button>
+            <div className="space-y-3 mb-6">
+              {order.items && order.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-4 p-3 bg-gray-50 rounded-xl border border-gray-100"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-xs font-bold shadow-sm shrink-0">
+                      {item.quantity}×
+                    </span>
+                    <span className="text-gray-800 font-medium text-sm sm:text-base">
+                      {item.product_name}
+                    </span>
+                  </div>
+                  <span className="text-gray-900 font-bold text-sm sm:text-base shrink-0">
+                    ₹{Number(item.price).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
 
+            {/* Total */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-4 border-t-2 border-gray-100 mb-5">
+              <span className="text-sm font-bold text-gray-500 uppercase tracking-wide">Total Paid</span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-green-600">
+                ₹{Number(order.total_price).toLocaleString("en-IN")}
+              </span>
+            </div>
+
+            {/* Delivery info placeholder */}
+            {order.address && (
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 mb-5">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Delivery Address</p>
+                <p className="text-sm text-gray-700">{order.address}</p>
+              </div>
+            )}
+
+            {/* Cancel Button */}
+            {order.status !== "Delivered" && order.status !== "Cancelled" && (
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={handleCancelOrder}
+                  className="text-sm font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl transition-colors border border-red-100"
+                >
+                  Cancel this Order
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
