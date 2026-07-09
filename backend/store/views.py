@@ -255,9 +255,9 @@ def register_view(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_user_orders(request):
-    # 🌟 FIX: Changed 'orderitem_set__product' to 'items__product'
-    orders = Order.objects.filter(user=request.user).prefetch_related('items__product').order_by('-id') 
-    serializer = OrderSerializer(orders, many=True)
+    orders = Order.objects.filter(user=request.user).prefetch_related('items__product').order_by('-id')
+    # ✅ Pass request context so OrderItemSerializer can build absolute image URLs
+    serializer = OrderSerializer(orders, many=True, context={'request': request})
     return Response(serializer.data)
 
 
@@ -266,9 +266,9 @@ def get_user_orders(request):
 @permission_classes([IsAuthenticated])
 def get_order_details(request, pk):
     try:
-        # 🌟 FIX: Changed 'orderitem_set__product' to 'items__product'
         order = Order.objects.prefetch_related('items__product').get(id=pk, user=request.user)
-        serializer = OrderSerializer(order)
+        # ✅ Pass request context so OrderItemSerializer can build absolute image URLs
+        serializer = OrderSerializer(order, context={'request': request})
         return Response(serializer.data)
     except Order.DoesNotExist:
         return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)

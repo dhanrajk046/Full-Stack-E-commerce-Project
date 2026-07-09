@@ -93,17 +93,25 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
-    
+    # ✅ Returns the full absolute URL of the product image (e.g. http://localhost:8000/media/products/img.jpg)
+    product_image = serializers.SerializerMethodField()
+
     class Meta:
         model = OrderItem
-        fields = ['id', 'product_name', 'quantity', 'price']
+        fields = ['id', 'product_name', 'product_image', 'quantity', 'price']
+
+    def get_product_image(self, obj):
+        request = self.context.get('request')
+        if obj.product and obj.product.image:
+            if request:
+                return request.build_absolute_uri(obj.product.image.url)
+            return obj.product.image.url
+        return None
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    # 🌟 FIX 1: Removed source='orderitem_set' since your related_name is just 'items'
     items = OrderItemSerializer(many=True, read_only=True)
 
     class Meta:
         model = Order
-        # 🌟 FIX 2: Added 'created_at' to the fields list!
         fields = ['id', 'total_price', 'created_at', 'items']

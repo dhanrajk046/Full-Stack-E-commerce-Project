@@ -167,18 +167,9 @@ function MyOrders() {
                 {/* Order Items */}
                 <div className="divide-y divide-gray-50">
                   {order.items && order.items.map((item, index) => {
-                    let rawImage = item.image || item.product_image || item.image_url || (item.product && item.product.image);
-                    let finalImageUrl = "https://placehold.co/100x100/f3f4f6/9ca3af?text=No+Image";
-
-                    if (rawImage) {
-                      if (rawImage.startsWith("http")) {
-                        finalImageUrl = rawImage;
-                      } else {
-                        const cleanBaseUrl = BASEURL.replace(/\/$/, "");
-                        const cleanImagePath = rawImage.startsWith("/") ? rawImage : `/${rawImage}`;
-                        finalImageUrl = `${cleanBaseUrl}${cleanImagePath}`;
-                      }
-                    }
+                    // ✅ Backend now returns absolute URL in item.product_image
+                    const finalImageUrl = item.product_image
+                      || "https://placehold.co/100x100/f3f4f6/9ca3af?text=No+Image";
 
                     return (
                       <div
